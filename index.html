@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Tournament 2026</title>
+    <!-- Tailwind CSS for Theme -->
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        body { background-color: #0b1528; color: #ffffff; }
+    </style>
+</head>
+<body class="font-sans pb-10">
+
+    <!-- Header Section -->
+    <header class="bg-[#0f213d] border-b border-emerald-500/30 p-6 text-center shadow-lg">
+        <div class="flex justify-center items-center gap-3 mb-2">
+            <span class="text-3xl">⚽</span>
+            <h1 class="text-3xl font-extrabold tracking-wide uppercase text-emerald-400">Weekly Tournament 2026</h1>
+        </div>
+        <p class="text-gray-400 text-sm">Every Match • Every Player • Every Week</p>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-4xl mx-auto px-4 mt-8 space-y-8">
+        
+        <!-- Dashboard Stats -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div class="bg-[#132a4a] p-5 rounded-xl border border-gray-800 text-center shadow-md">
+                <span id="stat-players" class="text-3xl font-bold text-emerald-400">...</span>
+                <p class="text-gray-400 text-xs mt-1 uppercase tracking-wider">Total Players</p>
+            </div>
+            <div class="bg-[#132a4a] p-5 rounded-xl border border-gray-800 text-center shadow-md">
+                <span id="stat-matches" class="text-3xl font-bold text-emerald-400">...</span>
+                <p class="text-gray-400 text-xs mt-1 uppercase tracking-wider">Total Matches</p>
+            </div>
+            <div class="bg-[#132a4a] p-5 rounded-xl border border-gray-800 text-center col-span-2 sm:col-span-1 shadow-md">
+                <span class="text-3xl font-bold text-emerald-400">2026</span>
+                <p class="text-gray-400 text-xs mt-1 uppercase tracking-wider">Current Season</p>
+            </div>
+        </div>
+
+        <!-- Points Table Section -->
+        <div class="bg-[#132a4a] p-6 rounded-xl border border-gray-800 shadow-xl">
+            <h2 class="text-xl font-bold text-emerald-400 mb-4 flex items-center gap-2">📊 Points Table (Leaderboard)</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-gray-700 text-gray-400 text-sm">
+                            <th class="pb-3 pl-2">Pos</th>
+                            <th class="pb-3">Player Name</th>
+                            <th class="pb-3 text-center">Played</th>
+                            <th class="pb-3 text-center">Points</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body-display" class="divide-y divide-gray-800/50 text-sm">
+                        <tr><td colspan="4" class="text-center py-4 text-gray-400">ডাটা লোড হচ্ছে...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Match Fixtures Section -->
+        <div class="bg-[#132a4a] p-6 rounded-xl border border-gray-800 shadow-xl">
+            <h2 class="text-xl font-bold text-emerald-400 mb-4 flex items-center gap-2">📅 Match Fixtures & Results</h2>
+            <div id="matches-list-display" class="space-y-3">
+                <p class="text-center py-4 text-gray-400 text-sm">ম্যাচ লিস্ট লোড হচ্ছে...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // ⚠️ আপনার গুগল শিটের CSV লিংকটি নিচে সিঙ্গেল কোটেশনের (' ') ভেতরে বসাবেন
+        const googleSheetCSVUrl = 'YOUR_GOOGLE_SHEET_CSV_URL_HERE';
+
+        async function fetchTournamentData() {
+            try {
+                const response = await fetch(googleSheetCSVUrl);
+                const data = await response.text();
+                
+                // CSV ডাটা পার্স করা
+                const rows = data.split('\n').map(row => row.split(','));
+                
+                let players = [];
+                let matches = [];
+
+                // গুগল শিটের রো (Rows) থেকে ডাটা আলাদা করা
+                rows.forEach((row, index) => {
+                    if (index === 0 || row.length < 2) return; // Header skip
+
+                    // যদি রোটি প্লেয়ার ডাটা হয় (ধরি ৩টি কলাম: টাইপ, নাম, ম্যাচ, পয়েন্ট)
+                    if (row[0].trim().toLowerCase() === 'player') {
+                        players.push({
+                            name: row[1].trim(),
+                            played: parseInt(row[2]) || 0,
+                            points: parseInt(row[3]) || 0
+                        });
+                    }
+                    // যদি রোটি ম্যাচ ডাটা হয় (টাইপ, টিম১, টিম২, স্কোর১, স্কোর২, স্ট্যাটাস)
+                    else if (row[0].trim().toLowerCase() === 'match') {
+                        matches.push({
+                            team1: row[1].trim(),
+                            team2: row[2].trim(),
+                            score1: row[3].trim(),
+                            score2: row[4].trim(),
+                            status: row[5] ? row[5].trim() : 'Upcoming'
+                        });
+                    }
+                });
+
+                // প্লেয়ারদের পয়েন্ট অনুযায়ী সাজানো (Rank 1, 2, 3...)
+                players.sort((a, b) => b.points - a.points);
+
+                // আপডেট স্ট্যাটস
+                document.getElementById('stat-players').innerText = players.length;
+                document.getElementById('stat-matches').innerText = matches.length;
+
+                // টেবিল রেন্ডার
+                const tableBody = document.getElementById('table-body-display');
+                tableBody.innerHTML = '';
+                players.forEach((player, index) => {
+                    tableBody.innerHTML += `
+                        <tr class="hover:bg-gray-800/30 transition">
+                            <td class="py-3 pl-2 font-bold ${index === 0 ? 'text-amber-400' : index === 1 ? 'text-gray-300' : 'text-gray-500'}">${index + 1}</td>
+                            <td class="py-3 font-medium text-white">${player.name}</td>
+                            <td class="py-3 text-center text-gray-300">${player.played}</td>
+                            <td class="py-3 text-center font-bold text-emerald-400">${player.points}</td>
+                        </tr>
+                    `;
+                });
+
+                // ম্যাচ রেন্ডার
+                const matchesContainer = document.getElementById('matches-list-display');
+                matchesContainer.innerHTML = '';
+                matches.forEach((match) => {
+                    let statusColor = "bg-gray-700 text-gray-300";
+                    if(match.status.toLowerCase() === 'live') statusColor = "bg-red-500 text-white animate-pulse";
+                    if(match.status.toLowerCase() === 'finished') statusColor = "bg-emerald-600 text-white";
+
+                    matchesContainer.innerHTML += `
+                        <div class="bg-[#183154] p-4 rounded-lg flex justify-between items-center border border-gray-700/50">
+                            <div class="flex-1 text-right font-semibold pr-4 text-sm">${match.team1}</div>
+                            <div class="bg-[#0b1528] px-3 py-1 rounded text-sm font-black text-amber-400 flex gap-2">
+                                <span>${match.score1 || 0}</span>
+                                <span class="text-gray-600">:</span>
+                                <span>${match.score2 || 0}</span>
+                            </div>
+                            <div class="flex-1 text-left font-semibold pl-4 text-sm">${match.team2}</div>
+                            <span class="text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wide ${statusColor}">${match.status}</span>
+                        </div>
+                    `;
+                });
+
+            } catch (error) {
+                console.error("ডাটা লোড করতে সমস্যা হয়েছে:", error);
+            }
+        }
+
+        // পেজ লোড হলে রান হবে
+        window.onload = fetchTournamentData;
+    </script>
+</body>
+</html>
